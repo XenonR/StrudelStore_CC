@@ -41,7 +41,8 @@ local function GetSpellCastName(spellInfo)
 		return spellInfo.name .. "(" .. spellInfo.rank .. ")"
 	end
 
-	local rankNumber = addon.spells.GetSpellRank(spellInfo.spellID)
+	local normalizedSpellId = spellInfo.spellID or spellInfo.spellId
+	local rankNumber = normalizedSpellId and addon.spells.GetSpellRank(normalizedSpellId)
 	if rankNumber then
 		return string.format("%s(%s %d)", spellInfo.name, RANK or "Rank", rankNumber)
 	end
@@ -354,8 +355,9 @@ function gui:DrawButtonFrame(frame, frameId, spellTable)
 		--If spell does exist, create a button for it
 		if spellInfo and not TableExtras:Contains(hiddenSpells, spellId) then
 			local spellCastName = GetSpellCastName(spellInfo)
-			local btn = CreateFrame("Button", "StrudelSpellButton" .. spellInfo.spellID, buttonFrame, "SecureActionButtonTemplate");
-			btn.buttonSpell = spellInfo.spellID --assign spell id to button (for later reference)
+			local normalizedSpellId = spellInfo.spellID or spellId
+			local btn = CreateFrame("Button", "StrudelSpellButton" .. normalizedSpellId, buttonFrame, "SecureActionButtonTemplate");
+			btn.buttonSpell = normalizedSpellId --assign spell id to button (for later reference)
 			btn:RegisterForClicks("LeftButtonUp", "LeftButtonDown");
 			btn:SetAttribute("type", "spell");
 			btn:SetAttribute("spell", spellCastName);
@@ -432,19 +434,35 @@ end
 
 --Helper method for 12.0.0 and 5.5.0/1.15.8 C_Spell differences
 function GetSpellInfoCompat(spellId)
+	local legacyName, legacyRank, legacyIcon = GetSpellInfo(spellId)
 	if C_Spell and C_Spell.GetSpellInfo then
-		return C_Spell.GetSpellInfo(spellId)
+		local cSpellInfo, cRank, cIcon = C_Spell.GetSpellInfo(spellId)
+		if type(cSpellInfo) == "table" then
+			cSpellInfo.name = cSpellInfo.name or cSpellInfo.spellName or legacyName
+			cSpellInfo.rank = cSpellInfo.rank or cSpellInfo.subText or cSpellInfo.subtext or legacyRank
+			cSpellInfo.iconID = cSpellInfo.iconID or cSpellInfo.originalIconID or cSpellInfo.iconFileID or legacyIcon
+			cSpellInfo.spellID = cSpellInfo.spellID or cSpellInfo.spellId or spellId
+			if cSpellInfo.name then
+				return cSpellInfo
+			end
+		elseif cSpellInfo then
+			return {
+				name = cSpellInfo or legacyName,
+				rank = cRank or legacyRank,
+				iconID = cIcon or legacyIcon,
+				spellID = spellId,
+			}
+		end
 	end
 
-	local name, rank, icon = GetSpellInfo(spellId)
-	if not name then
+	if not legacyName then
 		return nil
 	end
 
 	return {
-		name = name,
-		rank = rank,
-		iconID = icon,
+		name = legacyName,
+		rank = legacyRank,
+		iconID = legacyIcon,
 		spellID = spellId,
 	}
 end
