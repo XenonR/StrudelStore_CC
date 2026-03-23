@@ -17,16 +17,24 @@ local function OpenConfigCategory()
 end
 
 local function GetSpellBookSlot(spellId)
-	if not (GetNumSpellTabs and GetSpellTabInfo and GetSpellBookItemInfo) then
-		return nil
-	end
+	local spellInfo = GetSpellInfoCompat(spellId)
 
 	for tabIndex = 1, GetNumSpellTabs() do
 		local _, _, offset, numSlots = GetSpellTabInfo(tabIndex)
 		for slot = offset + 1, offset + numSlots do
-			local spellType, spellBookSpellId = GetSpellBookItemInfo(slot, spellBookType)
-			if spellType == "SPELL" and spellBookSpellId == spellId then
-				return slot
+			if spellInfo then
+				local slotName, slotRank
+				if GetSpellBookItemName then
+					slotName, slotRank = GetSpellBookItemName(slot, spellBookType)
+				elseif GetSpellName then
+					slotName, slotRank = GetSpellName(slot, spellBookType)
+				end
+
+				if slotName == spellInfo.name then
+					if slotRank == spellInfo.rank or not slotRank or slotRank == "" or not spellInfo.rank or spellInfo.rank == "" then
+						return slot
+					end
+				end
 			end
 		end
 	end
@@ -469,16 +477,53 @@ function GetSpellInfoCompat(spellId)
 end
 
 function GetSpellCastCountCompat(spellId)
+	local fallbackCount
+
+	if GetSpellCount then
+		local spellBookSlot = GetSpellBookSlot(spellId)
+		if spellBookSlot then
+			local slotCount = GetSpellCount(spellBookSlot, spellBookType)
+			if slotCount and slotCount > 0 then
+				return slotCount
+			end
+			fallbackCount = slotCount
+		end
+
+		local spellInfo = GetSpellInfoCompat(spellId)
+		if spellInfo then
+			local castName = GetSpellCastName(spellInfo)
+			if castName then
+				local castNameCount = GetSpellCount(castName)
+				if castNameCount and castNameCount > 0 then
+					return castNameCount
+				end
+				fallbackCount = fallbackCount or castNameCount
+			end
+
+			local spellNameCount = GetSpellCount(spellInfo.name)
+			if spellNameCount and spellNameCount > 0 then
+				return spellNameCount
+			end
+			fallbackCount = fallbackCount or spellNameCount
+		end
+
+		local spellIdCount = GetSpellCount(spellId)
+		if spellIdCount and spellIdCount > 0 then
+			return spellIdCount
+		end
+		fallbackCount = fallbackCount or spellIdCount
+	end
+
+	-- 3.3.5 compatibility shims may expose C_Spell.GetSpellCastCount, but only return 0.
 	if C_Spell and C_Spell.GetSpellCastCount then
-		return C_Spell.GetSpellCastCount(spellId)
+		local spellCastCount = C_Spell.GetSpellCastCount(spellId)
+		if spellCastCount and spellCastCount > 0 then
+			return spellCastCount
+		end
+		fallbackCount = fallbackCount or spellCastCount
 	end
 
-	local spellBookSlot = GetSpellBookSlot(spellId)
-	if spellBookSlot then
-		return GetSpellCount(spellBookSlot, spellBookType) or 0
-	end
-
-	return GetSpellCount(spellId) or 0
+	return fallbackCount or 0
 end
 
 function IsSpellKnownCompat(spellId)
