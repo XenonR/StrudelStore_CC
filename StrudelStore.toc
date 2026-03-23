@@ -1,0 +1,19 @@
+﻿## Interface: 30300
+## Title : StrudelStore_CC
+## IconTexture: Interface\Icons\INV_Misc_Food_73CinnamonRoll
+## Notes: "A simple interface that will provide support for Food, Portals and Teleports."
+## Notes-esES:"Una interfaz simple que proporcione apoyo a los alimentos, Portales y se teletransporta."
+## Notes-ruRU: "Простой интерфейс, который будет оказывать поддержку продуктов питания, порталы и телепорты"
+## Version: 3.3.0-wotlk
+## Author: LeonLucDev
+## SavedVariables: StrudelStoreDB
+embeds.xml
+Loc\localization.core.lua
+Loc\localization.de_De.lua
+Loc\localization.es_Es.lua
+Loc\localization.ru_Ru.lua
+Loc\localization.zh_Cn.lua
+core.lua
+config.lua
+gui.lua
+spells.lua
