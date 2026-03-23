@@ -67,7 +67,8 @@ function gui:BuildGui()
 	containerFrame:SetPoint("CENTER");
 	containerFrame:SetClampedToScreen(true);
 	containerFrame:SetMovable(true)
-	containerFrame:EnableMouse(true)
+	-- Keep the container click-through; the visible child frames handle interaction.
+	containerFrame:EnableMouse(false)
 	--If there are no store region points, center the frame
 	if containerFrame:GetNumPoints() == 0 then
 		containerFrame:SetPoint("CENTER");
